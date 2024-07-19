@@ -1,6 +1,7 @@
 # schemas.py
-from pydantic import BaseModel
-from typing import List
+from fastapi import File, Form, UploadFile
+from pydantic import BaseModel, HttpUrl
+from typing import List, Optional
 from datetime import date, datetime
 
 class ReportBase(BaseModel):
@@ -8,8 +9,23 @@ class ReportBase(BaseModel):
     report_created_date: date
     isVisible: bool
 
-class ReportCreate(ReportBase):
-    pass
+class ReportCreate(BaseModel):
+    title: str
+    report_created_date: date
+    isVisible: bool
+    file: Optional[UploadFile] = None
+
+    @classmethod
+    def as_form(
+        cls, 
+        title: str = Form(...), 
+        report_created_date: date = Form(...), 
+        isVisible: bool = Form(...), 
+        file: Optional[UploadFile] = File(None)
+    ) -> "ReportCreate":
+        return cls(title=title, report_created_date=report_created_date, isVisible=isVisible, file=file)
+
+
 
 class ReportUpdate(BaseModel):
     title: str = None
@@ -19,6 +35,7 @@ class ReportUpdate(BaseModel):
 class Report(ReportBase):
     id: int
     created_at: datetime
+    file_url: Optional[HttpUrl]  # URL to the uploaded file
 
     class Config:
         orm_mode: True

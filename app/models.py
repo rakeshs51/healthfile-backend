@@ -1,5 +1,7 @@
+from typing import Optional
+from pydantic import HttpUrl
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Date, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from .database import Base
 
@@ -19,5 +21,6 @@ class Report(Base):
     isVisible = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     category_id = Column(Integer, ForeignKey("categories.id"))
+    file_url: Mapped[Optional[HttpUrl]] = Column(String, nullable=True)
 
     category = relationship("Category", back_populates="reports")

@@ -5,16 +5,33 @@ from typing import List, Dict, Any
 from ..database import get_db
 from ..models import Report, Category
 from ..schemas import *
-from .crud import *
+from ..utils.crud import *
+from ..utils.s3_client_operations import *
 
 router = APIRouter()
 
 @router.post("/categories/{category_id}/reports/", response_model=Report)
-def create_report_for_category(category_id: int, report: ReportCreate, db: Session = Depends(get_db)):
+async def create_report_for_category(category_id: int, report: ReportCreate = Depends(ReportCreate.as_form), db: Session = Depends(get_db)):
     db_category = get_category(db, category_id=category_id)
     if db_category is None:
         raise HTTPException(status_code=404, detail="Category not found")
-    return create_report(db=db, report=report, category_id=category_id)
+    
+    
+     # Upload file to S3 if present
+    file_url = ""
+    if report.file:
+        try:
+            file_url = await upload_file_to_s3(report.file)
+            print(file_url)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+    
+    try:
+        return create_report(db=db, report=report, file_url=file_url, category_id=category_id)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database transaction failed: {str(e)}")
+    
 
 @router.get("/reports/", response_model=List[Report])
 def read_reports(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):

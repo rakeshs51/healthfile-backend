@@ -4,7 +4,7 @@ from typing import List
 from ..database import get_db
 from ..models import Category
 from ..schemas import CategoryCreate, CategoryUpdate
-from .crud import *
+from ..utils.crud import *
 
 router = APIRouter()
 
