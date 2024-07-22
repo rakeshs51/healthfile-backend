@@ -7,10 +7,22 @@ from .routers.category import router as category_router
 from .routers.user import router as user_router
 from.routers.users_info import router as user_info_router
 from .utils.s3_client import init_s3_client
+from fastapi.middleware.cors import CORSMiddleware
 
 # models.Base.metadata.create_all(bind=engine) 
 
 app = FastAPI()
+
+origins = ["*"] # edit this to allow only our frontend to access the database TODO: edit this ASAP!!!
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.on_event("startup")
 async def startup_event():
