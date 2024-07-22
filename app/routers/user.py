@@ -33,7 +33,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/users/login", response_model=Token)
 async def login(request: Login, db: Session = Depends(get_db)):
     # Attempt to find the user by email or username
-    user = db.query(User).filter((User.email == request.username) | (User.username == request.username)).first()
+    user = db.query(User).filter((User.email == request.username_or_email) | (User.username == request.username_or_email)).first()
     if not user:
         raise HTTPException(status_code=404, detail="Invalid credentials")  # More generic message
 

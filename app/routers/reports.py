@@ -1,9 +1,12 @@
 # report.py
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import Field
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
+
+from app.utils.jwt_token import get_current_user
 from ..database import get_db
-from ..models import Report, Category
+from ..models import Report, Category, User
 from ..schemas import *
 from ..utils.crud import *
 from ..utils.s3_client_operations import *
@@ -11,13 +14,17 @@ from ..utils.s3_client_operations import *
 router = APIRouter()
 
 @router.post("/categories/{category_id}/reports/", response_model=Report)
-async def create_report_for_category(category_id: int, report: ReportCreate = Depends(ReportCreate.as_form), db: Session = Depends(get_db)):
+async def create_report_for_category(
+    category_id: int,
+    report: ReportCreate = Depends(ReportCreate.as_form),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     db_category = get_category(db, category_id=category_id)
     if db_category is None:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    
-     # Upload file to S3 if present
+    # Upload file to S3 if present
     file_url = ""
     if report.file:
         try:
@@ -27,42 +34,64 @@ async def create_report_for_category(category_id: int, report: ReportCreate = De
             raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
     
     try:
-        return create_report(db=db, report=report, file_url=file_url, category_id=category_id)
+        new_report = create_report(db=db, report=report, file_url=file_url, category_id=category_id, user_id=current_user.id)
+        return new_report
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database transaction failed: {str(e)}")
     
 
 @router.get("/reports/", response_model=List[Report])
-def read_reports(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    reports = get_reports(db, skip=skip, limit=limit)
+def read_reports(
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    reports = get_reports_for_current_user(db, current_user.id, skip=skip, limit=limit)
     return reports
 
 @router.get("/reports/{report_id}", response_model=Report)
-def read_report(report_id: int, db: Session = Depends(get_db)):
-    db_report = get_report(db, report_id=report_id)
-    if db_report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
-    return db_report
+def read_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    report = get_report_for_specific_id_for_current_user(db, report_id, current_user.id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found or not accessible")
+    return report
 
 @router.put("/reports/{report_id}", response_model=Report)
-def update_report(report_id: int, report: ReportUpdate, db: Session = Depends(get_db)):
-    db_report = get_report(db, report_id=report_id)
+def update_report(
+    report_id: int,
+    report: ReportUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_report = get_report_for_specific_id_for_current_user(db, report_id, current_user.id)
     if db_report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
-    updated_report = update_report_method(db, report_id=report_id, report=report)
+        raise HTTPException(status_code=404, detail="Report not found or not accessible")
+    updated_report = update_report_method(db, report_id, current_user.id, report)
     return updated_report
 
 @router.delete("/reports/{report_id}", response_model=Report)
-def delete_report(report_id: int, db: Session = Depends(get_db)):
-    db_report = get_report(db, report_id=report_id)
+def delete_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db_report = get_report_for_specific_id_for_current_user(db, report_id, current_user.id)
     if db_report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
-    deleted_report = delete_report_method(db, report_id=report_id)
+        raise HTTPException(status_code=404, detail="Report not found or not accessible")
+    deleted_report = delete_report_method(db, report_id, current_user.id)
     return deleted_report
 
 @router.get("/reports_by_category/", response_model=Dict[str, Any])
-def read_all_reports(db: Session = Depends(get_db)):
+def read_all_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     categories = db.query(models.Category).all()
     result = {
         "status": "success",
@@ -74,10 +103,12 @@ def read_all_reports(db: Session = Depends(get_db)):
                         "id": report.id,
                         "title": report.title,
                         "report_created_date": report.report_created_date,
-                        "isVisible": report.isVisible
-                    } for report in category.reports
+                        "isVisible": report.isVisible,
+                        "user_id": current_user.id
+                    } for report in category.reports if report.user_id == current_user.id
                 ]
-            } for category in categories
+            } for category in categories if any(report.user_id == current_user.id for report in category.reports)
         ]
     }
     return result
+

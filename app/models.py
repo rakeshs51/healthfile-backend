@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import HttpUrl
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Date, DateTime
+from sqlalchemy import Column, Float, Integer, String, Boolean, ForeignKey, Date, DateTime
 from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from .database import Base
@@ -41,6 +41,26 @@ class User(Base):
 
     # Relationship to the Report model
     reports = relationship("Report", back_populates="user")
+    
+    # Relationship to users_info
+    info = relationship("UserInfo", back_populates="user", uselist=False)
 
     def __repr__(self):
         return f"<User(username={self.username}, email={self.email})>"
+    
+class UserInfo(Base):
+    __tablename__ = 'users_info'
+    
+    id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    name = Column(String, nullable=False)
+    date_of_birth = Column(Date, nullable=False)
+    gender = Column(String, nullable=False)
+    phone_number = Column(String, nullable=False)
+    weight = Column(Float, nullable=True)
+    height = Column(Float, nullable=True)
+    age = Column(Integer, nullable=False)
+    bmi = Column(Float, nullable=True)
+    emergency_contact_number = Column(String, nullable=True)
+
+    # Relationship back to User
+    user = relationship("User", back_populates="info")

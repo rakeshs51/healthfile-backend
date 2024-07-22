@@ -38,27 +38,28 @@ def delete_category_method(db: Session, category_id: int):
 
 # Report CRUD methods
 
-def create_report(db: Session, report: ReportCreate, file_url: str, category_id: int):
+def create_report(db: Session, report: ReportCreate, file_url: str, category_id: int, user_id: int):
     new_report = models.Report(
         title=report.title,
         report_created_date=report.report_created_date,
         isVisible=report.isVisible,
         file_url=file_url,
         category_id=category_id,
+        user_id=user_id
     )
     db.add(new_report)
     db.commit()
     db.refresh(new_report)
     return new_report
 
-def get_report(db: Session, report_id: int):
-    return db.query(models.Report).filter(models.Report.id == report_id).first()
+def get_report_for_specific_id_for_current_user(db: Session, report_id: int, user_id: int) -> Report:
+    return db.query(models.Report).filter(models.Report.id == report_id, models.Report.user_id == user_id).first()
 
-def get_reports(db: Session, skip: int = 0, limit: int = 10):
-    return db.query(models.Report).offset(skip).limit(limit).all()
+def get_reports_for_current_user(db: Session, user_id: int, skip: int = 0, limit: int = 10):
+    return db.query(models.Report).filter(models.Report.user_id == user_id).offset(skip).limit(limit).all()
 
-def update_report_method(db: Session, report_id: int, report: ReportUpdate):
-    db_report = db.query(models.Report).filter(models.Report.id == report_id).first()
+def update_report_method(db: Session, report_id: int, user_id: int, report: ReportUpdate) -> Report:
+    db_report = db.query(models.Report).filter(models.Report.id == report_id, models.Report.user_id == user_id).first()
     if db_report:
         for key, value in report.dict(exclude_unset=True).items():
             setattr(db_report, key, value)
@@ -66,8 +67,8 @@ def update_report_method(db: Session, report_id: int, report: ReportUpdate):
         db.refresh(db_report)
     return db_report
 
-def delete_report_method(db: Session, report_id: int):
-    db_report = db.query(models.Report).filter(models.Report.id == report_id).first()
+def delete_report_method(db: Session, report_id: int, user_id: int) -> Report:
+    db_report = db.query(models.Report).filter(models.Report.id == report_id, models.Report.user_id == user_id).first()
     if db_report:
         db.delete(db_report)
         db.commit()
