@@ -22,5 +22,25 @@ class Report(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     category_id = Column(Integer, ForeignKey("categories.id"))
     file_url: Mapped[Optional[HttpUrl]] = Column(String, nullable=True)
+    # Foreign key to reference the User model
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    # Relationship to link back to the User model
+    user = relationship("User", back_populates="reports")
 
     category = relationship("Category", back_populates="reports")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(20), unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationship to the Report model
+    reports = relationship("Report", back_populates="user")
+
+    def __repr__(self):
+        return f"<User(username={self.username}, email={self.email})>"
