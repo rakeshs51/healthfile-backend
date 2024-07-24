@@ -56,8 +56,24 @@ def get_report_for_specific_id_for_current_user(db: Session, report_id: int, use
     return db.query(models.Report).filter(models.Report.id == report_id, models.Report.user_id == user_id).first()
 
 def get_reports_for_current_user(db: Session, user_id: int, skip: int = 0, limit: int = 10):
-    return db.query(models.Report).filter(models.Report.user_id == user_id).offset(skip).limit(limit).all()
-
+    reports = (
+        db.query(
+            models.Report.id,
+            models.Report.title,
+            models.Report.report_created_date,
+            models.Report.isVisible,
+            models.Report.created_at,
+            models.Report.file_url,
+            models.Report.category_id,
+            models.Category.name.label("category_name")
+        )
+        .join(models.Category, models.Report.category_id == models.Category.id)
+        .filter(models.Report.user_id == user_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return reports
 def update_report_method(db: Session, report_id: int, user_id: int, report: ReportUpdate) -> Report:
     db_report = db.query(models.Report).filter(models.Report.id == report_id, models.Report.user_id == user_id).first()
     if db_report:

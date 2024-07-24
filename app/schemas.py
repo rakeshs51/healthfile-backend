@@ -36,6 +36,8 @@ class Report(ReportBase):
     id: int
     created_at: datetime
     file_url: Optional[HttpUrl]  # URL to the uploaded file
+    category_id: Optional[int]
+    category_name: Optional[str]
 
     class Config:
         orm_mode: True
