@@ -12,6 +12,8 @@ from ..utils.crud import *
 from ..utils.s3_client_operations import *
 
 router = APIRouter()
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
+
 
 @router.post("/categories/{category_id}/reports/", response_model=Report)
 async def create_report_for_category(
@@ -27,6 +29,8 @@ async def create_report_for_category(
     # Upload file to S3 if present
     file_url = ""
     if report.file:
+        if report.file.spool_max_size > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the maximum limit of 5 MB")
         try:
             file_url = await upload_file_to_s3(report.file)
             print(file_url)
