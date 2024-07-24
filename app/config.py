@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_HOST: str
     POSTGRES_HOSTNAME: str
-
+    DATABASE_URL: str
     JWT_PUBLIC_KEY: str
     JWT_PRIVATE_KEY: str
     REFRESH_TOKEN_EXPIRES_IN: int

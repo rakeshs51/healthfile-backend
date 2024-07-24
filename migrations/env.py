@@ -10,8 +10,8 @@ from app.config import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url",f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOSTNAME}:{settings.DATABASE_PORT}/{settings.POSTGRES_DB}")
-
+# config.set_main_option("sqlalchemy.url",f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOSTNAME}:{settings.DATABASE_PORT}/{settings.POSTGRES_DB}")
+config.set_main_option("sqlalchemy.url","cockroachdb://admin-rakesh:Rglqgr0CQUXDf7oNiFefqw@healthfile-backend-5511.7s5.aws-ap-south-1.cockroachlabs.cloud:26257/healthfiledb?sslmode=verify-full")
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
