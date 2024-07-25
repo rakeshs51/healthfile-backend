@@ -32,12 +32,12 @@ class ReportUpdate(BaseModel):
     report_created_date: date = None
     isVisible: bool = None
 
-class Report(ReportBase):
+class ReportResponse(ReportBase):
     id: int
     created_at: datetime
-    file_url: Optional[HttpUrl]  # URL to the uploaded file
-    category_id: Optional[int]
-    category_name: Optional[str]
+    file_url: HttpUrl  # URL to the uploaded file
+    category_id: int
+    category_name: str
 
     class Config:
         orm_mode: True
@@ -53,7 +53,7 @@ class CategoryUpdate(CategoryBase):
 
 class Category(CategoryBase):
     id: int
-    reports: List[Report] = []
+    reports: List[ReportResponse] = []
 
     class Config:
         orm_mode: True

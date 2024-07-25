@@ -11,11 +11,12 @@ from ..schemas import *
 from ..utils.crud import *
 from ..utils.s3_client_operations import *
 
+
 router = APIRouter()
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB in bytes
 
 
-@router.post("/categories/{category_id}/reports/", response_model=Report)
+@router.post("/categories/{category_id}/reports/", response_model=ReportResponse)
 async def create_report_for_category(
     category_id: int,
     report: ReportCreate = Depends(ReportCreate.as_form),
@@ -29,8 +30,13 @@ async def create_report_for_category(
     # Upload file to S3 if present
     file_url = ""
     if report.file:
-        if report.file.spool_max_size > MAX_FILE_SIZE:
+        report.file.file.seek(0, 2)  # Move the cursor to the end of the file
+        file_size = report.file.file.tell()
+        report.file.file.seek(0)  # Reset the cursor to the beginning of the file
+        
+        if file_size > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail="File size exceeds the maximum limit of 5 MB")
+        
         try:
             file_url = await upload_file_to_s3(report.file)
             print(file_url)
@@ -43,9 +49,8 @@ async def create_report_for_category(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database transaction failed: {str(e)}")
-    
 
-@router.get("/reports/", response_model=List[Report])
+@router.get("/reports/", response_model=List[ReportResponse])
 def read_reports(
     skip: int = 0,
     limit: int = 10,
@@ -55,7 +60,7 @@ def read_reports(
     reports = get_reports_for_current_user(db, current_user.id, skip=skip, limit=limit)
     return reports
 
-@router.get("/reports/{report_id}", response_model=Report)
+@router.get("/reports/{report_id}", response_model=ReportResponse)
 def read_report(
     report_id: int,
     db: Session = Depends(get_db),
@@ -66,7 +71,7 @@ def read_report(
         raise HTTPException(status_code=404, detail="Report not found or not accessible")
     return report
 
-@router.put("/reports/{report_id}", response_model=Report)
+@router.put("/reports/{report_id}", response_model=ReportResponse)
 def update_report(
     report_id: int,
     report: ReportUpdate,
@@ -79,7 +84,7 @@ def update_report(
     updated_report = update_report_method(db, report_id, current_user.id, report)
     return updated_report
 
-@router.delete("/reports/{report_id}", response_model=Report)
+@router.delete("/reports/{report_id}", response_model=ReportResponse)
 def delete_report(
     report_id: int,
     db: Session = Depends(get_db),
